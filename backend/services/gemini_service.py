@@ -1,10 +1,28 @@
-import google.generativeai as genai
-from config.settings import GEMINI_API_KEY
+from google import genai
+import os
 
-genai.configure(api_key=GEMINI_API_KEY)
+# Initialize client with API key
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+def ask_gemini(prompt: str) -> list:
+    """
+    Generate interview questions dynamically using Gemini
+    """
 
-def ask_gemini(prompt: str) -> str:
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    response = client.models.generate_content(
+        model="models/gemini-2.5-flash",
+        contents=prompt
+    )
+
+    # Gemini returns text → split into questions
+    text = response.text.strip()
+
+    questions = [
+        q.strip("- ").strip()
+        for q in text.split("\n")
+        if q.strip()
+    ]
+
+    return questions

@@ -1,7 +1,15 @@
 from services.gemini_service import ask_gemini
 
-def generate_personalized_learning_plan(domain, score, weaknesses, experience, resume_summary=None):
-
+# ===============================
+# CORE AI FUNCTION (your original logic)
+# ===============================
+def generate_personalized_learning_plan(
+    domain,
+    score,
+    weaknesses,
+    experience="Fresher",
+    resume_summary=None
+):
     prompt = f"""
 You are an AI interview coach.
 
@@ -24,3 +32,17 @@ Keep it concise and actionable.
 """
 
     return ask_gemini(prompt)
+
+
+# ===============================
+# COMPATIBILITY WRAPPER (IMPORTANT)
+# ===============================
+def generate_learning_plan(domain, score, weaknesses):
+    """
+    Wrapper function to match interview_routes.py import
+    """
+    return generate_personalized_learning_plan(
+        domain=domain,
+        score=score,
+        weaknesses=weaknesses
+    )
