@@ -4,3 +4,4 @@ python-dotenv
 reportlab
 google-generativeai
 PyPDF2
+google-genai
