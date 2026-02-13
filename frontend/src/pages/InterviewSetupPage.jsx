@@ -12,26 +12,29 @@ const InterviewSetupPage = () => {
   const [count, setCount] = useState(3);
 
   const startInterview = () => {
-    if (!name || !email || !domain) {
+    if (!name.trim() || !email.trim() || !domain) {
       alert("Please fill all required fields");
       return;
     }
 
     if (domain === "Technical" && !language.trim()) {
-      alert("Please enter a technology / language");
+      alert("Please enter a technology");
       return;
     }
 
-    navigate("/interview", {
-      state: {
-        name,
-        email,
-        domain,
-        difficulty,
-        count,
-        language: domain === "Technical" ? language.trim() : "",
-      },
-    });
+    const config = {
+      name: name.trim(),
+      email: email.trim(),
+      domain,
+      difficulty,
+      count,
+      language: domain === "Technical" ? language.trim() : "",
+    };
+
+    // ✅ Save to sessionStorage
+    sessionStorage.setItem("interviewConfig", JSON.stringify(config));
+
+    navigate("/interview");
   };
 
   return (
@@ -39,8 +42,19 @@ const InterviewSetupPage = () => {
       <div style={styles.card}>
         <h2 style={styles.title}>Interview Setup</h2>
 
-        <input style={styles.input} placeholder="Full Name" onChange={(e) => setName(e.target.value)} />
-        <input style={styles.input} placeholder="Email Address" onChange={(e) => setEmail(e.target.value)} />
+        <input
+          style={styles.input}
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <input
+          style={styles.input}
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <select
           style={styles.input}
@@ -59,19 +73,27 @@ const InterviewSetupPage = () => {
         {domain === "Technical" && (
           <input
             style={styles.input}
-            placeholder="Enter Technology (Python, Java, SQL...)"
+            placeholder="Technology (Python, Java, SQL...)"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           />
         )}
 
-        <select style={styles.input} value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+        <select
+          style={styles.input}
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+        >
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
 
-        <select style={styles.input} value={count} onChange={(e) => setCount(Number(e.target.value))}>
+        <select
+          style={styles.input}
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value))}
+        >
           <option value={3}>3 Questions</option>
           <option value={5}>5 Questions</option>
           <option value={10}>10 Questions</option>
@@ -94,13 +116,17 @@ const styles = {
     alignItems: "center",
   },
   card: {
-    background: "#020617",
     padding: 40,
     borderRadius: 16,
     width: 420,
+    background: "#020617",
     boxShadow: "0 0 30px rgba(37,99,235,0.25)",
   },
-  title: { color: "#38BDF8", textAlign: "center", marginBottom: 25 },
+  title: {
+    color: "#38BDF8",
+    textAlign: "center",
+    marginBottom: 25,
+  },
   input: {
     width: "100%",
     padding: 12,
@@ -117,9 +143,8 @@ const styles = {
     border: "none",
     background: "#2563EB",
     color: "#fff",
-    fontSize: 16,
-    cursor: "pointer",
     fontWeight: "bold",
+    cursor: "pointer",
   },
 };
 

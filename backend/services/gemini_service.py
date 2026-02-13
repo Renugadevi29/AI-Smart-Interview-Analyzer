@@ -1,28 +1,44 @@
-from google import genai
 import os
+from dotenv import load_dotenv
+from google import genai
 
-# Initialize client with API key
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+# Load env
+load_dotenv()
+
+# Get key
+api_key = os.getenv("GEMINI_API_KEY")
+
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found")
+
+# Init client
+client = genai.Client(api_key=api_key)
+
 
 def ask_gemini(prompt: str) -> list:
     """
-    Generate interview questions dynamically using Gemini
+    Generate interview questions using Gemini
     """
 
-    response = client.models.generate_content(
-        model="models/gemini-2.5-flash",
-        contents=prompt
-    )
+    try:
+        response = client.models.generate_content(
+            model="models/gemini-2.5-flash",
+            contents=prompt
+        )
 
-    # Gemini returns text → split into questions
-    text = response.text.strip()
+        if not response or not response.text:
+            raise Exception("Empty response from Gemini")
 
-    questions = [
-        q.strip("- ").strip()
-        for q in text.split("\n")
-        if q.strip()
-    ]
+        text = response.text.strip()
 
-    return questions
+        questions = [
+            q.strip("-• ").strip()
+            for q in text.split("\n")
+            if q.strip()
+        ]
+
+        return questions
+
+    except Exception as e:
+        print("🔥 Gemini API Error:", e)
+        raise e
