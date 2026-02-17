@@ -1,9 +1,24 @@
-from google import genai
+import google.generativeai as genai
 import os
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Configure API key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-models = client.models.list()
+try:
+    models = genai.list_models()
+    for model in models:
+        print(model.name)
+except Exception as e:
+    print("Error listing models:", e)
+import google.generativeai as genai
+import os
 
-for m in models:
-    print(m.name)
+# Configure API key
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+try:
+    models = genai.list_models()
+    for model in models:
+        print(model.name)
+except Exception as e:
+    print("Error listing models:", e)

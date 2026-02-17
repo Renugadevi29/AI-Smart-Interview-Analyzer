@@ -1,48 +1,46 @@
 from services.gemini_service import ask_gemini
+import json
 
-# ===============================
-# CORE AI FUNCTION (your original logic)
-# ===============================
-def generate_personalized_learning_plan(
-    domain,
-    score,
-    weaknesses,
-    experience="Fresher",
-    resume_summary=None
-):
+def generate_learning_plan(domain, score, weaknesses):
+
     prompt = f"""
-You are an AI interview coach.
+You are a strict AI interview evaluator.
 
-Candidate Details:
-- Domain: {domain}
-- Overall Score: {score}
-- Experience Level: {experience}
-- Weak Areas: {", ".join(weaknesses)}
+Candidate Performance:
+Domain: {domain}
+Score: {score}/100
+Weak Areas: {", ".join(weaknesses)}
 
-{f"Resume Summary: {resume_summary}" if resume_summary else ""}
+Generate a HIGHLY personalized structured learning plan.
 
-Generate a personalized learning plan including:
-1. Key improvement areas
-2. Topics to learn
-3. Daily / weekly practice roadmap
-4. Recommended resources
-5. Final motivation note
+Return JSON in this format:
 
-Keep it concise and actionable.
+{{
+  "performance_level": "",
+  "focus_areas": [],
+  "technical_gaps": [],
+  "two_week_roadmap": [],
+  "recommended_resources": [],
+  "improvement_strategy": ""
+}}
+
+Rules:
+- Must explain why marks were lost.
+- Must be domain specific.
+- Minimum 300 words total.
+- Do not give generic advice.
 """
 
-    return ask_gemini(prompt)
+    response = ask_gemini(prompt)
 
-
-# ===============================
-# COMPATIBILITY WRAPPER (IMPORTANT)
-# ===============================
-def generate_learning_plan(domain, score, weaknesses):
-    """
-    Wrapper function to match interview_routes.py import
-    """
-    return generate_personalized_learning_plan(
-        domain=domain,
-        score=score,
-        weaknesses=weaknesses
-    )
+    try:
+        return json.loads(response)
+    except:
+        return {
+            "performance_level": "Needs Improvement",
+            "focus_areas": weaknesses,
+            "technical_gaps": weaknesses,
+            "two_week_roadmap": ["Revise fundamentals daily"],
+            "recommended_resources": ["Official documentation"],
+            "improvement_strategy": "Focus on conceptual clarity."
+        }

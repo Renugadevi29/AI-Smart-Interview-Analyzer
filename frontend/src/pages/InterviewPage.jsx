@@ -16,49 +16,66 @@ const InterviewPage = () => {
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
-  /* 🔒 Redirect if accessed directly */
+  /* ==============================
+      🔒 Redirect Protection
+  ============================== */
   useEffect(() => {
     if (!state) navigate("/");
   }, [state, navigate]);
 
-  /* 🎥 WEBCAM — FINAL FIX */
+  /* ==============================
+      🎥 STABLE WEBCAM FIX
+  ============================== */
   useEffect(() => {
-    let activeStream;
+    let localStream = null;
 
-    async function startCamera() {
+    const initCamera = async () => {
       try {
-        activeStream = await navigator.mediaDevices.getUserMedia({
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera not supported in this browser");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false,
         });
 
-        streamRef.current = activeStream;
+        localStream = stream;
+        streamRef.current = stream;
 
         if (videoRef.current) {
-          videoRef.current.srcObject = activeStream;
-          await videoRef.current.play(); // 🔥 REQUIRED
+          videoRef.current.srcObject = stream;
+
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch((err) => {
+              console.error("Video play error:", err);
+            });
+          };
         }
       } catch (err) {
-        alert("Webcam access denied");
-        console.error(err);
+        console.error("Camera Error:", err);
+        setCameraError("Camera permission denied or unavailable.");
       }
-    }
+    };
 
-    startCamera();
+    initCamera();
 
     return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach((t) => t.stop());
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
-  /* 📥 LOAD QUESTIONS */
+  /* ==============================
+      📥 LOAD QUESTIONS
+  ============================== */
   useEffect(() => {
     if (!state) return;
 
-    async function loadQuestions() {
+    const loadQuestions = async () => {
       try {
         const res = await generateQuestions({
           domain: state.domain,
@@ -68,23 +85,24 @@ const InterviewPage = () => {
         });
 
         if (res?.questions?.length) {
-          setQuestions(res.questions);
-        } else {
-          alert("No questions received");
+          setQuestions(res.questions.slice(0, state.count));
         }
       } catch (err) {
-        alert("Failed to load questions");
+        console.error("Question Load Error:", err);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     loadQuestions();
   }, [state]);
 
-  /* 🔊 SPEAK QUESTION */
+  /* ==============================
+      🔊 TEXT TO SPEECH
+  ============================== */
   const speakQuestion = () => {
     if (!questions[currentIndex]) return;
+
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(
@@ -94,13 +112,15 @@ const InterviewPage = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  /* 🎤 SPEECH → TEXT */
+  /* ==============================
+      🎤 SPEECH TO TEXT
+  ============================== */
   const startRecording = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Speech recognition not supported");
+      alert("Speech recognition not supported in this browser");
       return;
     }
 
@@ -110,24 +130,40 @@ const InterviewPage = () => {
 
     setListening(true);
 
-    recognition.onresult = (e) => {
-      setAnswerText(e.results[0][0].transcript);
+    recognition.onresult = (event) => {
+      setAnswerText(event.results[0][0].transcript);
       setListening(false);
     };
 
     recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+
     recognition.start();
   };
 
-  /* ➡️ NEXT QUESTION */
+  /* ==============================
+      ➡️ NEXT QUESTION
+  ============================== */
   const nextQuestion = () => {
-    setAnswers((prev) => [...prev, answerText]);
+    if (!answerText.trim()) {
+      alert("Please answer before continuing.");
+      return;
+    }
+
+    setAnswers((prev) => [...prev, answerText.trim()]);
     setAnswerText("");
     setCurrentIndex((prev) => prev + 1);
   };
 
-  /* ✅ SUBMIT INTERVIEW */
+  /* ==============================
+      ✅ SUBMIT INTERVIEW
+  ============================== */
   const submitInterviewHandler = async () => {
+    if (!answerText.trim()) {
+      alert("Please answer the last question.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -141,45 +177,51 @@ const InterviewPage = () => {
           difficulty: state.difficulty,
           language: state.language || "",
         },
-        answers: [...answers, answerText],
+        answers: [...answers, answerText.trim()],
+        questions: questions,
       });
 
-      // 🛑 STOP CAMERA
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
 
       navigate("/result", { state: response });
     } catch (err) {
+      console.error("Submit Error:", err);
       alert("Interview submission failed");
-      console.error(err);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ⏳ STATES */
+  /* ==============================
+      UI STATES
+  ============================== */
   if (loading)
-    return <p style={{ color: "white", padding: 30 }}>Loading interview...</p>;
+    return <p style={{ color: "white", padding: 30 }}>Loading...</p>;
 
   if (!questions.length)
     return <p style={{ color: "white", padding: 30 }}>No questions available</p>;
 
   return (
     <div style={styles.container}>
-      {/* CAMERA */}
+      {/* 🎥 CAMERA */}
       <div style={styles.cameraBox}>
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          style={styles.video}
-        />
-        <p style={styles.camText}>Webcam Active</p>
+        {cameraError ? (
+          <p style={{ color: "red" }}>{cameraError}</p>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            style={styles.video}
+          />
+        )}
+        <p style={styles.camText}>Live Preview</p>
       </div>
 
-      {/* INTERVIEW */}
+      {/* 🧠 INTERVIEW SECTION */}
       <div style={styles.card}>
         <h2 style={styles.title}>
           Question {currentIndex + 1} of {questions.length}
@@ -187,17 +229,22 @@ const InterviewPage = () => {
 
         <p style={styles.question}>{questions[currentIndex]}</p>
 
-        <button style={styles.secondaryBtn} onClick={speakQuestion}>
-          🔊 Hear Question
-        </button>
+        <div style={{ marginBottom: 15 }}>
+          <button style={styles.secondaryBtn} onClick={speakQuestion}>
+            🔊 Hear Question
+          </button>
 
-        <button style={styles.primaryBtn} onClick={startRecording}>
-          🎤 {listening ? "Listening..." : "Speak Answer"}
-        </button>
+          <button style={styles.primaryBtn} onClick={startRecording}>
+            🎤 {listening ? "Listening..." : "Speak Answer"}
+          </button>
+        </div>
 
-        <p style={styles.answer}>
-          <b>Your Answer:</b> {answerText}
-        </p>
+        <textarea
+          value={answerText}
+          onChange={(e) => setAnswerText(e.target.value)}
+          placeholder="You can speak or type your answer here..."
+          style={styles.textarea}
+        />
 
         {currentIndex < questions.length - 1 ? (
           <button style={styles.nextBtn} onClick={nextQuestion}>
@@ -217,7 +264,6 @@ const InterviewPage = () => {
   );
 };
 
-/* 🎨 STYLES */
 const styles = {
   container: {
     minHeight: "100vh",
@@ -228,64 +274,71 @@ const styles = {
   },
   cameraBox: {
     width: "35%",
-    borderRadius: 16,
-    padding: 20,
-    boxShadow: "0 0 25px rgba(37,99,235,0.25)",
     textAlign: "center",
   },
   video: {
     width: "100%",
-    height: "300px",
+    height: 300,
     objectFit: "cover",
-    borderRadius: "12px",
+    borderRadius: 12,
     border: "2px solid #38BDF8",
     background: "#000",
   },
-  camText: { marginTop: 10, color: "#38BDF8" },
+  camText: {
+    marginTop: 10,
+    color: "#38BDF8",
+  },
   card: {
     width: "65%",
-    borderRadius: 16,
-    padding: 30,
-    boxShadow: "0 0 30px rgba(37,99,235,0.25)",
     color: "white",
   },
-  title: { color: "#38BDF8" },
-  question: { fontSize: 20, margin: "20px 0" },
+  title: {
+    color: "#38BDF8",
+  },
+  question: {
+    fontSize: 20,
+    margin: "20px 0",
+  },
   primaryBtn: {
     background: "#2563EB",
-    padding: 14,
+    padding: 12,
     color: "#fff",
-    borderRadius: 10,
+    borderRadius: 8,
     border: "none",
-    cursor: "pointer",
     marginLeft: 10,
+    cursor: "pointer",
   },
   secondaryBtn: {
     background: "#0F172A",
     padding: 12,
     color: "#38BDF8",
-    borderRadius: 10,
     border: "1px solid #38BDF8",
+    borderRadius: 8,
     cursor: "pointer",
   },
-  answer: { marginTop: 15, color: "#CBD5E1" },
+  textarea: {
+    width: "100%",
+    minHeight: 120,
+    padding: 12,
+    borderRadius: 8,
+    border: "1px solid #334155",
+    background: "#0F172A",
+    color: "white",
+    marginBottom: 20,
+  },
   nextBtn: {
-    marginTop: 20,
-    padding: 14,
+    padding: 12,
     background: "#22D3EE",
+    borderRadius: 8,
     border: "none",
-    borderRadius: 10,
     cursor: "pointer",
-    fontWeight: "bold",
   },
   submitBtn: {
-    marginTop: 20,
-    padding: 14,
+    padding: 12,
     background: "#10B981",
+    borderRadius: 8,
     border: "none",
-    borderRadius: 10,
     cursor: "pointer",
-    fontWeight: "bold",
   },
 };
 

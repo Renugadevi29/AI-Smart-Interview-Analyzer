@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from services.speech_analysis import analyze_answer
 from utils.scoring import calculate_score
-from services.recommendation_service import generate_personalized_learning_plan
+from services.recommendation_service import generate_learning_plan
+
 
 analysis_bp = Blueprint("analysis", __name__)
 
@@ -22,7 +23,7 @@ def analyze_interview():
     ]
     weaknesses = list(filter(None, weaknesses))
 
-    learning_plan = generate_personalized_learning_plan(
+    learning_plan = generate_learning_plan(
         domain,
         score_data["overall_score"],
         weaknesses,

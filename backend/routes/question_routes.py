@@ -9,19 +9,28 @@ def generate_questions():
 
     domain = data.get("domain")
     difficulty = data.get("difficulty")
-    count = data.get("count", 3)
+    count = int(data.get("count", 3))
     language = data.get("language", "")
 
     prompt = f"""
-Generate {count} {difficulty}-level interview questions
+Generate EXACTLY {count} {difficulty}-level interview questions
 for a {domain} interview.
+
 Language: {language}
-Do NOT number the questions.
-Each question on a new line.
+
+IMPORTANT RULES:
+- Return exactly {count} questions
+- Do NOT number them
+- Do NOT add explanations
+- Each question must be on a new line
 """
 
     try:
         questions = ask_gemini(prompt)
+
+        # Safety check: trim or pad to exact count
+        questions = questions[:count]
+
         return jsonify({"questions": questions})
 
     except Exception as e:
