@@ -1,13 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { generateQuestions, submitInterview } from "../services/api";
+import CameraRecorder from "../components/CameraRecorder";
 
 const InterviewPage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
-
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
 
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -16,62 +14,13 @@ const InterviewPage = () => {
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [cameraError, setCameraError] = useState(null);
 
-  /* ==============================
-      🔒 Redirect Protection
-  ============================== */
+  /* 🔒 Redirect Protection */
   useEffect(() => {
     if (!state) navigate("/");
   }, [state, navigate]);
 
-  /* ==============================
-      🎥 STABLE WEBCAM FIX
-  ============================== */
-  useEffect(() => {
-    let localStream = null;
-
-    const initCamera = async () => {
-      try {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error("Camera not supported in this browser");
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false,
-        });
-
-        localStream = stream;
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play().catch((err) => {
-              console.error("Video play error:", err);
-            });
-          };
-        }
-      } catch (err) {
-        console.error("Camera Error:", err);
-        setCameraError("Camera permission denied or unavailable.");
-      }
-    };
-
-    initCamera();
-
-    return () => {
-      if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
-
-  /* ==============================
-      📥 LOAD QUESTIONS
-  ============================== */
+  /* 📥 LOAD QUESTIONS */
   useEffect(() => {
     if (!state) return;
 
@@ -97,9 +46,7 @@ const InterviewPage = () => {
     loadQuestions();
   }, [state]);
 
-  /* ==============================
-      🔊 TEXT TO SPEECH
-  ============================== */
+  /* 🔊 TEXT TO SPEECH */
   const speakQuestion = () => {
     if (!questions[currentIndex]) return;
 
@@ -112,15 +59,13 @@ const InterviewPage = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  /* ==============================
-      🎤 SPEECH TO TEXT
-  ============================== */
+  /* 🎤 SPEECH TO TEXT */
   const startRecording = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Speech recognition not supported in this browser");
+      alert("Speech recognition not supported");
       return;
     }
 
@@ -141,9 +86,7 @@ const InterviewPage = () => {
     recognition.start();
   };
 
-  /* ==============================
-      ➡️ NEXT QUESTION
-  ============================== */
+  /* ➡️ NEXT QUESTION */
   const nextQuestion = () => {
     if (!answerText.trim()) {
       alert("Please answer before continuing.");
@@ -155,9 +98,7 @@ const InterviewPage = () => {
     setCurrentIndex((prev) => prev + 1);
   };
 
-  /* ==============================
-      ✅ SUBMIT INTERVIEW
-  ============================== */
+  /* ✅ SUBMIT */
   const submitInterviewHandler = async () => {
     if (!answerText.trim()) {
       alert("Please answer the last question.");
@@ -181,10 +122,6 @@ const InterviewPage = () => {
         questions: questions,
       });
 
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-
       navigate("/result", { state: response });
     } catch (err) {
       console.error("Submit Error:", err);
@@ -194,9 +131,6 @@ const InterviewPage = () => {
     }
   };
 
-  /* ==============================
-      UI STATES
-  ============================== */
   if (loading)
     return <p style={{ color: "white", padding: 30 }}>Loading...</p>;
 
@@ -207,21 +141,11 @@ const InterviewPage = () => {
     <div style={styles.container}>
       {/* 🎥 CAMERA */}
       <div style={styles.cameraBox}>
-        {cameraError ? (
-          <p style={{ color: "red" }}>{cameraError}</p>
-        ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            style={styles.video}
-          />
-        )}
+        <CameraRecorder />
         <p style={styles.camText}>Live Preview</p>
       </div>
 
-      {/* 🧠 INTERVIEW SECTION */}
+      {/* 🧠 INTERVIEW */}
       <div style={styles.card}>
         <h2 style={styles.title}>
           Question {currentIndex + 1} of {questions.length}
@@ -275,14 +199,6 @@ const styles = {
   cameraBox: {
     width: "35%",
     textAlign: "center",
-  },
-  video: {
-    width: "100%",
-    height: 300,
-    objectFit: "cover",
-    borderRadius: 12,
-    border: "2px solid #38BDF8",
-    background: "#000",
   },
   camText: {
     marginTop: 10,
