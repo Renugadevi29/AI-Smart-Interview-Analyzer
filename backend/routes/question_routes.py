@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.gemini_service import ask_gemini
+from routes.resume_routes import RESUME_STORAGE
 
 question_bp = Blueprint("question_bp", __name__)
 
@@ -11,24 +12,44 @@ def generate_questions():
     difficulty = data.get("difficulty")
     count = int(data.get("count", 3))
     language = data.get("language", "")
+    resume_id = data.get("resume_id")
 
-    prompt = f"""
+    # 🔥 Resume-based mode
+    if resume_id and resume_id in RESUME_STORAGE:
+        resume_text = RESUME_STORAGE[resume_id]
+
+        prompt = f"""
+Generate EXACTLY {count} interview questions
+based strictly on this candidate resume.
+
+Resume:
+{resume_text}
+
+Include:
+- Technical questions from skills
+- Project-based deep questions
+- Behavioral questions from experience
+
+Rules:
+- Do NOT number
+- One question per line
+- No explanations
+"""
+    else:
+        prompt = f"""
 Generate EXACTLY {count} {difficulty}-level interview questions
 for a {domain} interview.
 
 Language: {language}
 
-IMPORTANT RULES:
-- Return exactly {count} questions
-- Do NOT number them
-- Do NOT add explanations
-- Each question must be on a new line
+Rules:
+- Do NOT number
+- One question per line
+- No explanations
 """
 
     try:
         questions = ask_gemini(prompt)
-
-        # Safety check: trim or pad to exact count
         questions = questions[:count]
 
         return jsonify({"questions": questions})

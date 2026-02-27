@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { uploadResume } from "../services/api";
 
 const InterviewSetupPage = () => {
   const navigate = useNavigate();
@@ -10,8 +11,11 @@ const InterviewSetupPage = () => {
   const [language, setLanguage] = useState("");
   const [difficulty, setDifficulty] = useState("easy");
   const [count, setCount] = useState(3);
+  const [mode, setMode] = useState("normal");
+  const [resumeFile, setResumeFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const startInterview = () => {
+  const startInterview = async () => {
     if (!name || !email || !domain) {
       alert("Please fill all required fields");
       return;
@@ -22,6 +26,25 @@ const InterviewSetupPage = () => {
       return;
     }
 
+    let resume_id = null;
+
+    if (mode === "resume") {
+      if (!resumeFile) {
+        alert("Please upload your resume");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const res = await uploadResume(resumeFile);
+        resume_id = res.resume_id;
+      } catch (err) {
+        alert("Resume upload failed");
+        setLoading(false);
+        return;
+      }
+    }
+
     navigate("/interview", {
       state: {
         name,
@@ -30,6 +53,7 @@ const InterviewSetupPage = () => {
         difficulty,
         count,
         language: domain === "Technical" ? language.trim() : "",
+        resume_id: resume_id,
       },
     });
   };
@@ -39,8 +63,17 @@ const InterviewSetupPage = () => {
       <div style={styles.card}>
         <h2 style={styles.title}>Interview Setup</h2>
 
-        <input style={styles.input} placeholder="Full Name" onChange={(e) => setName(e.target.value)} />
-        <input style={styles.input} placeholder="Email Address" onChange={(e) => setEmail(e.target.value)} />
+        <input
+          style={styles.input}
+          placeholder="Full Name"
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <input
+          style={styles.input}
+          placeholder="Email Address"
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <select
           style={styles.input}
@@ -65,20 +98,48 @@ const InterviewSetupPage = () => {
           />
         )}
 
-        <select style={styles.input} value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+        <select
+          style={styles.input}
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+        >
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
 
-        <select style={styles.input} value={count} onChange={(e) => setCount(Number(e.target.value))}>
+        <select
+          style={styles.input}
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value))}
+        >
           <option value={3}>3 Questions</option>
           <option value={5}>5 Questions</option>
           <option value={10}>10 Questions</option>
         </select>
 
+        {/* Mode Selection */}
+        <select
+          style={styles.input}
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+        >
+          <option value="normal">Normal Interview</option>
+          <option value="resume">Resume-Based Interview</option>
+        </select>
+
+        {/* Resume Upload */}
+        {mode === "resume" && (
+          <input
+            type="file"
+            accept=".pdf"
+            style={styles.input}
+            onChange={(e) => setResumeFile(e.target.files[0])}
+          />
+        )}
+
         <button style={styles.button} onClick={startInterview}>
-          Start Interview
+          {loading ? "Uploading Resume..." : "Start Interview"}
         </button>
       </div>
     </div>

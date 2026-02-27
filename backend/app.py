@@ -5,6 +5,7 @@ import os
 from routes.question_routes import question_bp
 from routes.interview_routes import interview_bp
 from routes.analysis_routes import analysis_bp
+from routes.resume_routes import resume_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -21,6 +22,7 @@ REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 app.register_blueprint(question_bp, url_prefix="/api")
 app.register_blueprint(interview_bp, url_prefix="/api")
 app.register_blueprint(analysis_bp, url_prefix="/api")
+app.register_blueprint(resume_bp,url_prefix="/api")
 
 # -----------------------------
 # HOME CHECK

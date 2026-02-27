@@ -15,12 +15,10 @@ const InterviewPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  /* 🔒 Redirect Protection */
   useEffect(() => {
     if (!state) navigate("/");
   }, [state, navigate]);
 
-  /* 📥 LOAD QUESTIONS */
   useEffect(() => {
     if (!state) return;
 
@@ -31,6 +29,7 @@ const InterviewPage = () => {
           difficulty: state.difficulty,
           count: state.count,
           language: state.language || "",
+          resume_id: state.resume_id || null,
         });
 
         if (res?.questions?.length) {
@@ -46,12 +45,10 @@ const InterviewPage = () => {
     loadQuestions();
   }, [state]);
 
-  /* 🔊 TEXT TO SPEECH */
   const speakQuestion = () => {
     if (!questions[currentIndex]) return;
 
     window.speechSynthesis.cancel();
-
     const utterance = new SpeechSynthesisUtterance(
       questions[currentIndex]
     );
@@ -59,7 +56,6 @@ const InterviewPage = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  /* 🎤 SPEECH TO TEXT */
   const startRecording = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -86,7 +82,6 @@ const InterviewPage = () => {
     recognition.start();
   };
 
-  /* ➡️ NEXT QUESTION */
   const nextQuestion = () => {
     if (!answerText.trim()) {
       alert("Please answer before continuing.");
@@ -98,7 +93,6 @@ const InterviewPage = () => {
     setCurrentIndex((prev) => prev + 1);
   };
 
-  /* ✅ SUBMIT */
   const submitInterviewHandler = async () => {
     if (!answerText.trim()) {
       alert("Please answer the last question.");
@@ -139,13 +133,11 @@ const InterviewPage = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🎥 CAMERA */}
       <div style={styles.cameraBox}>
         <CameraRecorder />
         <p style={styles.camText}>Live Preview</p>
       </div>
 
-      {/* 🧠 INTERVIEW */}
       <div style={styles.card}>
         <h2 style={styles.title}>
           Question {currentIndex + 1} of {questions.length}

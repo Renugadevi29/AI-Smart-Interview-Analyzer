@@ -1,14 +1,18 @@
 import PyPDF2
+import os
 
-def extract_resume_text(file_path: str) -> str:
+def extract_text_from_pdf(file_path):
     text = ""
 
     try:
         with open(file_path, "rb") as file:
             reader = PyPDF2.PdfReader(file)
-            for page in reader.pages:
-                text += page.extract_text() or ""
-    except Exception as e:
-        print("Resume parsing error:", e)
 
-    return text.strip()
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+
+        return text.strip()
+
+    except Exception as e:
+        print("❌ Resume Parsing Error:", e)
+        return ""

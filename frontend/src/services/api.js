@@ -42,3 +42,19 @@ export const submitInterview = async (payload) => {
 
   return await res.json(); // 🔥 THIS IS CRITICAL
 };
+
+export const uploadResume = async (file) => {
+  const formData = new FormData();
+  formData.append("resume", file);
+
+  const res = await fetch("http://localhost:5000/api/resume/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error("Resume upload failed");
+  }
+
+  return await res.json();
+};
