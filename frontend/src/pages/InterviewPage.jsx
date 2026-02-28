@@ -11,9 +11,9 @@ const InterviewPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerText, setAnswerText] = useState("");
   const [answers, setAnswers] = useState([]);
-  const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     if (!state) navigate("/");
@@ -29,14 +29,13 @@ const InterviewPage = () => {
           difficulty: state.difficulty,
           count: state.count,
           language: state.language || "",
-          resume_id: state.resume_id || null,
         });
 
         if (res?.questions?.length) {
           setQuestions(res.questions.slice(0, state.count));
         }
       } catch (err) {
-        console.error("Question Load Error:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -45,39 +44,74 @@ const InterviewPage = () => {
     loadQuestions();
   }, [state]);
 
+  /* 🔊 TEXT TO SPEECH */
   const speakQuestion = () => {
-    if (!questions[currentIndex]) return;
+  if (!questions[currentIndex]) return;
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(
-      questions[currentIndex]
-    );
+  const text = questions[currentIndex];
+
+  const synth = window.speechSynthesis;
+
+  const speak = () => {
+    if (synth.speaking) {
+      synth.cancel();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    window.speechSynthesis.speak(utterance);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    // Select a proper English voice
+    const voices = synth.getVoices();
+    const englishVoice = voices.find(v => v.lang === "en-US");
+
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    synth.speak(utterance);
   };
 
+  // If voices not loaded yet
+  if (synth.getVoices().length === 0) {
+    synth.onvoiceschanged = () => {
+      speak();
+    };
+  } else {
+    speak();
+  }
+};
+  /* 🎤 SPEECH TO TEXT */
   const startRecording = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Speech recognition not supported");
+      alert("Speech recognition not supported in this browser");
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     setListening(true);
 
     recognition.onresult = (event) => {
-      setAnswerText(event.results[0][0].transcript);
-      setListening(false);
+      const transcript = event.results[0][0].transcript;
+      setAnswerText(transcript);
     };
 
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      alert("Microphone error: " + event.error);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
 
     recognition.start();
   };
@@ -118,7 +152,7 @@ const InterviewPage = () => {
 
       navigate("/result", { state: response });
     } catch (err) {
-      console.error("Submit Error:", err);
+      console.error(err);
       alert("Interview submission failed");
     } finally {
       setSubmitting(false);
@@ -135,11 +169,10 @@ const InterviewPage = () => {
     <div style={styles.container}>
       <div style={styles.cameraBox}>
         <CameraRecorder />
-        <p style={styles.camText}>Live Preview</p>
       </div>
 
       <div style={styles.card}>
-        <h2 style={styles.title}>
+        <h2>
           Question {currentIndex + 1} of {questions.length}
         </h2>
 
@@ -158,7 +191,7 @@ const InterviewPage = () => {
         <textarea
           value={answerText}
           onChange={(e) => setAnswerText(e.target.value)}
-          placeholder="You can speak or type your answer here..."
+          placeholder="You can speak or type your answer..."
           style={styles.textarea}
         />
 
@@ -190,18 +223,10 @@ const styles = {
   },
   cameraBox: {
     width: "35%",
-    textAlign: "center",
-  },
-  camText: {
-    marginTop: 10,
-    color: "#38BDF8",
   },
   card: {
     width: "65%",
     color: "white",
-  },
-  title: {
-    color: "#38BDF8",
   },
   question: {
     fontSize: 20,
