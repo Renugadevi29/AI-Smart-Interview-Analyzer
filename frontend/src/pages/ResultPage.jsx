@@ -25,10 +25,15 @@ const ResultPage = () => {
     difficulty,
     score,
     strengths = [],
-    improvements = [],
     learning_plan = {},
     report,
   } = state;
+
+  const focusAreas = learning_plan.focus_areas || [];
+  const technicalGaps = learning_plan.technical_gaps || [];
+
+  const duplicateTechnical =
+    JSON.stringify(focusAreas) === JSON.stringify(technicalGaps);
 
   const handleDownload = () => {
     if (!report) {
@@ -84,7 +89,7 @@ const ResultPage = () => {
 
         {/* Strengths */}
         <h3>✅ Strengths</h3>
-        {strengths.length ? (
+        {strengths.length > 0 ? (
           <ul>
             {strengths.map((s, i) => (
               <li key={i}>{s}</li>
@@ -92,18 +97,6 @@ const ResultPage = () => {
           </ul>
         ) : (
           <p>No strengths data available.</p>
-        )}
-
-        {/* Improvements */}
-        <h3>⚠ Areas to Improve</h3>
-        {improvements.length ? (
-          <ul>
-            {improvements.map((i, idx) => (
-              <li key={idx}>{i}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No improvement suggestions available.</p>
         )}
 
         {/* Learning Plan */}
@@ -114,50 +107,57 @@ const ResultPage = () => {
           {learning_plan.performance_level || "Not Available"}
         </p>
 
-        {learning_plan.focus_areas && (
+        {/* Focus Areas */}
+        {focusAreas.length > 0 && (
           <>
             <h4>Focus Areas</h4>
             <ul>
-              {learning_plan.focus_areas.map((item, i) => (
+              {focusAreas.map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
             </ul>
           </>
         )}
 
-        {learning_plan.technical_gaps && (
+        {/* Technical Gaps */}
+        {technicalGaps.length > 0 && !duplicateTechnical && (
           <>
             <h4>Technical Gaps</h4>
             <ul>
-              {learning_plan.technical_gaps.map((item, i) => (
+              {technicalGaps.map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
             </ul>
           </>
         )}
 
-        {learning_plan.two_week_roadmap && (
-          <>
-            <h4>2 Week Roadmap</h4>
-            <ul>
-              {learning_plan.two_week_roadmap.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        {/* Roadmap */}
+        {learning_plan.two_week_roadmap &&
+          learning_plan.two_week_roadmap.length > 0 && (
+            <>
+              <h4>2 Week Roadmap</h4>
+              <ul>
+                {learning_plan.two_week_roadmap.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </>
+          )}
 
-        {learning_plan.recommended_resources && (
-          <>
-            <h4>Recommended Resources</h4>
-            <ul>
-              {learning_plan.recommended_resources.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        {/* Resources */}
+        {learning_plan.recommended_resources &&
+          learning_plan.recommended_resources.length > 0 && (
+            <>
+              <h4>Recommended Resources</h4>
+              <ul>
+                {learning_plan.recommended_resources.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </>
+          )}
 
+        {/* Strategy */}
         {learning_plan.improvement_strategy && (
           <>
             <h4>Strategy</h4>
@@ -192,6 +192,7 @@ const styles = {
     alignItems: "center",
     padding: 30,
   },
+
   card: {
     width: "75%",
     background: "#0F172A",
@@ -199,8 +200,15 @@ const styles = {
     borderRadius: 16,
     color: "white",
   },
-  title: { color: "#38BDF8" },
-  score: { color: "#22D3EE" },
+
+  title: {
+    color: "#38BDF8",
+  },
+
+  score: {
+    color: "#22D3EE",
+  },
+
   downloadBtn: {
     padding: 12,
     background: "#22D3EE",
@@ -209,6 +217,7 @@ const styles = {
     cursor: "pointer",
     marginRight: 10,
   },
+
   mailBtn: {
     padding: 12,
     background: "#10B981",
@@ -217,6 +226,7 @@ const styles = {
     cursor: "pointer",
     marginRight: 10,
   },
+
   homeBtn: {
     padding: 12,
     background: "#2563EB",

@@ -4,6 +4,7 @@ from services.recommendation_service import generate_learning_plan
 from utils.pdf_generator import generate_interview_report
 import subprocess
 import os
+import json
 
 interview_bp = Blueprint("interview_bp", __name__)
 
@@ -67,9 +68,6 @@ def submit_interview():
             learning_plan=learning_plan
         )
 
-        # -----------------------------
-        # Return Final Response
-        # -----------------------------
         return jsonify({
             "candidate": candidate,
             "domain": config.get("domain"),
@@ -78,16 +76,16 @@ def submit_interview():
             "strengths": evaluation.get("strengths", []),
             "improvements": evaluation.get("improvements", []),
             "learning_plan": learning_plan,
-            "report": report_filename  # 🔥 IMPORTANT for download + email
+            "report": report_filename
         }), 200
 
     except Exception as e:
-        print("❌ Interview Submission Error:", e)
+        print("❌ Interview Submission Error:", str(e))
         return jsonify({"error": "Interview evaluation failed"}), 500
 
 
 # ======================================================
-# 2️⃣ SEND REPORT TO MAIL (Trigger UiPath Robot)
+# 2️⃣ SEND REPORT TO MAIL (Trigger UiPath)
 # ======================================================
 @interview_bp.route("/send-report", methods=["POST"])
 def send_report():
@@ -107,33 +105,42 @@ def send_report():
             return jsonify({"error": "Report filename missing"}), 400
 
         # -----------------------------
-        # Validate report file exists
+        # Build absolute PDF path
         # -----------------------------
-        report_path = os.path.join("reports", report)
+        report_path = os.path.abspath(os.path.join("reports", report))
 
         if not os.path.exists(report_path):
-            return jsonify({"error": "Report file not found"}), 404
+            return jsonify({"error": f"Report not found: {report_path}"}), 404
 
         # -----------------------------
-        # UiPath Robot Executable Path
+        # UiRobot Path
         # -----------------------------
         uirobot_path = r"C:\Users\ELCOT\AppData\Local\Programs\UiPath\Studio\UiRobot.exe"
 
-        # -----------------------------
-        # UiPath Workflow File Path
-        # 🔁 Change this to your actual xaml path
-        # -----------------------------
-        workflow_path = r"D:\UiPathProjects\SendInterviewReport.xaml"
+        if not os.path.exists(uirobot_path):
+            return jsonify({"error": "UiRobot.exe not found"}), 404
 
         # -----------------------------
-        # Trigger UiPath Process
+        # Prepare UiPath arguments
+        # MUST match UiPath arguments
         # -----------------------------
+        input_data = {
+            "in_email": email,
+            "in_report": report_path
+        }
+
+        # -----------------------------
+        # Trigger UiPath Automation
+        # -----------------------------
+        print("Email:",email)
+        print("Report Path:",report_path)
         subprocess.Popen([
             uirobot_path,
-            "-file",
-            workflow_path,
-            "-input",
-            f'{{"email":"{email}","report":"{report}"}}'
+            "execute",
+            "--process-name",
+            "UiPath",
+            "--input",
+            json.dumps(input_data)
         ])
 
         return jsonify({
@@ -141,5 +148,5 @@ def send_report():
         }), 200
 
     except Exception as e:
-        print("❌ Send Report Error:", e)
+        print("❌ Send Report Error:", str(e))
         return jsonify({"error": "Failed to trigger automation"}), 500
