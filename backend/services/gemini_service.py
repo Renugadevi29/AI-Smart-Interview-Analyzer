@@ -89,3 +89,25 @@ Answers:
             "weaknesses": ["Evaluation failed"],
             "learning_plan": {}
         }
+
+def generate_ideal_answer(question, domain):
+    prompt = f"""
+    You are an expert interviewer.
+
+    Question: {question}
+    Domain: {domain}
+
+    Provide a short ideal answer.
+    """
+
+    # ✅ USE SAME Gemini setup as evaluate_with_gemini
+    response = evaluate_with_gemini(
+        questions=[question],
+        answers=["dummy"],
+        domain=domain
+    )
+
+    # ⚡ Extract something usable
+    ideal_answer = " ".join(response.get("strengths", []))
+
+    return ideal_answer

@@ -86,6 +86,9 @@ const ResultPage = () => {
         <p><b>Difficulty:</b> {difficulty}</p>
 
         <h2 style={styles.score}>Score: {score}/100</h2>
+        <p style={{ color: "#94A3B8", marginTop: 5 }}>
+  (Experimental Hybrid Score: {Math.round(state.hybrid_score || 0)}/100)
+</p>
 
         {/* Strengths */}
         <h3>✅ Strengths</h3>

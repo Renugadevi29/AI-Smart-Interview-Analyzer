@@ -5,3 +5,4 @@ reportlab
 google-generativeai
 PyPDF2
 google-genai
+scikit-learn
